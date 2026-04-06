@@ -63,14 +63,15 @@ services:
     volumes:
       - sentence-transformer_data:/app/.cache
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/sentence-transformer/health || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 50s
 
   settings-manager:
-    image: joposcragent/settings-manager
+    image: joposcragent-settings-manager:${SETTINGS_MANAGER_IMAGE_TAG:-0.0.2-SNAPSHOT}
+    pull_policy: never
     ports:
       - "${SETTINGS_MANAGER_PORT:-8080}:8080"
     environment:
@@ -94,4 +95,14 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/postgres
   sentence-transformer_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/sentence-transformer

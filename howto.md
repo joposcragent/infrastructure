@@ -11,5 +11,5 @@ $ docker build -t sentence-transformer:latest .
 
 ```bash
 $ cd app/settings-manager/
-$ ./gradlew bootBuildImage
+$ IMAGE_NAME=joposcragent-settings-manager IMAGE_TAG=0.0.2-SNAPSHOT ./gradlew bootBuildImage
 ```
