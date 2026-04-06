@@ -51,5 +51,24 @@ services:
         condition: service_completed_successfully
     restart: "no"
 
+  sentence-transformer:
+    image: joposcragent-sentence-transformer
+    pull_policy: never
+    ports:
+      - "${SENTENCE_TRANSFORMER_PORT:-8000}:8000"
+    environment:
+      ST_HOST: ${ST_HOST:-0.0.0.0}
+      ST_PORT: ${ST_PORT:-8000}
+      ST_DEVICE: ${ST_DEVICE:-cpu}
+    volumes:
+      - sentence-transformer_data:/app/.cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   postgres_data:
+  sentence-transformer_data:
