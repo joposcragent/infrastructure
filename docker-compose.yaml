@@ -94,7 +94,7 @@ services:
       start_period: 40s
 
   job-postings-crud:
-    image: joposcragent-job-postings-crud:${SETTINGS_MANAGER_IMAGE_TAG:-0.0.2-SNAPSHOT}
+    image: joposcragent-job-postings-crud:${JOB_POSTINGS_CRUD_IMAGE_TAG:-0.0.3-SNAPSHOT}
     pull_policy: never
     ports:
       - "${JOB_POSTINGS_CRUD_PORT:-8081}:8080"
