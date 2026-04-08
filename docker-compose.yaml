@@ -112,7 +112,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 40s
+      start_period: 20s
+
+  job-postings-evaluator:
+    image: joposcragent-job-postings-evaluator:${JOB_POSTINGS_EVALUATOR_IMAGE_TAG:-0.0.1-SNAPSHOT}
+    pull_policy: never
+    ports:
+      - "${JOB_POSTINGS_EVALUATOR_PORT:-8082}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      JOPOSCRAGENT_SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
+      JOPOSCRAGENT_SENTENCE_TRANSFORMER_BASE_URL: http://sentence-transformer:8000/sentence-transformer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      settings-manager:
+        condition: service_healthy
+      sentence-transformer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 volumes:
   postgres_data:
