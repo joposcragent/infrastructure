@@ -91,7 +91,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 60s
 
   job-postings-crud:
     image: joposcragent-job-postings-crud:${JOB_POSTINGS_CRUD_IMAGE_TAG:-0.0.3-SNAPSHOT}
@@ -112,7 +112,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 60s
 
   job-postings-evaluator:
     image: joposcragent-job-postings-evaluator:${JOB_POSTINGS_EVALUATOR_IMAGE_TAG:-0.0.1-SNAPSHOT}
@@ -139,7 +139,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 60s
 
 volumes:
   postgres_data:    
