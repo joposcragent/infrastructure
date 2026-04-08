@@ -91,7 +91,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 40s
+      start_period: 20s
 
   job-postings-crud:
     image: joposcragent-job-postings-crud:${JOB_POSTINGS_CRUD_IMAGE_TAG:-0.0.3-SNAPSHOT}
@@ -142,7 +142,7 @@ services:
       start_period: 20s
 
 volumes:
-  postgres_data:
+  postgres_data:    
     driver: local
     driver_opts:
       type: none
