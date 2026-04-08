@@ -93,6 +93,27 @@ services:
       retries: 5
       start_period: 40s
 
+  job-postings-crud:
+    image: joposcragent-job-postings-crud:${SETTINGS_MANAGER_IMAGE_TAG:-0.0.2-SNAPSHOT}
+    pull_policy: never
+    ports:
+      - "${JOB_POSTINGS_CRUD_PORT:-8081}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
 volumes:
   postgres_data:
     driver: local
