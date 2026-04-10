@@ -1,4 +1,3 @@
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -70,7 +69,7 @@ services:
       start_period: 50s
 
   settings-manager:
-    image: joposcragent-settings-manager:${SETTINGS_MANAGER_IMAGE_TAG:-0.0.2-SNAPSHOT}
+    image: joposcragent/settings-manager:${SETTINGS_MANAGER_IMAGE_TAG:-0.0.3-SNAPSHOT}
     pull_policy: never
     ports:
       - "${SETTINGS_MANAGER_PORT:-8080}:8080"
@@ -86,12 +85,6 @@ services:
         condition: service_completed_successfully
       sentence-transformer:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
 
   job-postings-crud:
     image: joposcragent-job-postings-crud:${JOB_POSTINGS_CRUD_IMAGE_TAG:-0.0.3-SNAPSHOT}
@@ -107,15 +100,9 @@ services:
         condition: service_healthy
       flyway:
         condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
 
   job-postings-evaluator:
-    image: joposcragent-job-postings-evaluator:${JOB_POSTINGS_EVALUATOR_IMAGE_TAG:-0.0.1-SNAPSHOT}
+    image: joposcragent/job-postings-evaluator:${JOB_POSTINGS_EVALUATOR_IMAGE_TAG:-0.0.2-SNAPSHOT}
     pull_policy: never
     ports:
       - "${JOB_POSTINGS_EVALUATOR_PORT:-8082}:8080"
@@ -131,15 +118,9 @@ services:
       flyway:
         condition: service_completed_successfully
       settings-manager:
-        condition: service_healthy
+        condition: service_started
       sentence-transformer:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+        condition: service_started
 
 volumes:
   postgres_data:    
