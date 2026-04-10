@@ -40,7 +40,7 @@ services:
     restart: "no"
 
   flyway:
-    image: joposcragent-flyway:latest
+    image: joposcragent-flyway:${FLYWAY_IMAGE_TAG:-latest}
     environment:
       FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-joposcragent}
       FLYWAY_USER: ${POSTGRES_USER:-postgres}
@@ -69,7 +69,7 @@ services:
       start_period: 50s
 
   settings-manager:
-    image: joposcragent/settings-manager:${SETTINGS_MANAGER_IMAGE_TAG:-0.0.3-SNAPSHOT}
+    image: joposcragent/settings-manager:${SETTINGS_IMAGE_TAG:-latest}
     pull_policy: never
     ports:
       - "${SETTINGS_MANAGER_PORT:-8080}:8080"
@@ -87,7 +87,7 @@ services:
         condition: service_healthy
 
   job-postings-crud:
-    image: joposcragent-job-postings-crud:${JOB_POSTINGS_CRUD_IMAGE_TAG:-0.0.3-SNAPSHOT}
+    image: joposcragent/job-postings-crud:${CRUD_IMAGE_TAG:-latest}
     pull_policy: never
     ports:
       - "${JOB_POSTINGS_CRUD_PORT:-8081}:8080"
@@ -102,7 +102,7 @@ services:
         condition: service_completed_successfully
 
   job-postings-evaluator:
-    image: joposcragent/job-postings-evaluator:${JOB_POSTINGS_EVALUATOR_IMAGE_TAG:-0.0.2-SNAPSHOT}
+    image: joposcragent/job-postings-evaluator:${EVALUATOR_IMAGE_TAG:-latest}
     pull_policy: never
     ports:
       - "${JOB_POSTINGS_EVALUATOR_PORT:-8082}:8080"

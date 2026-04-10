@@ -1,5 +1,11 @@
 # How to...
 
+## Посмотреть что пошло не так при запуске
+
+```bash
+$ docker inspect infra-settings-manager-1 --format '{{json .State.Health}}'
+```
+
 ## Sentence-transformer
 
 ```bash
