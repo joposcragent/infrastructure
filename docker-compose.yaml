@@ -121,6 +121,16 @@ services:
         condition: service_started
       sentence-transformer:
         condition: service_started
+  crawler-headhunter:
+    image: joposcragent/crawler-headhunter:${CRAWLER_HEADHUNTER_IMAGE_TAG:-latest}
+    pull_policy: never
+    ports:
+      - "${CRAWLER_HEADHUNTER_PORT:-3000}:3000"
+    environment:
+      JOB_POSTINGS_CRUD_URL: http://job-postings-crud:8080
+    depends_on:
+      job-postings-crud:
+        condition: service_started
 
 volumes:
   postgres_data:    
