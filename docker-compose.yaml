@@ -1,3 +1,22 @@
+x-celery-orchestrator-base: &celery_orchestrator_base
+  image: joposcragent/celery-orchestrator:${CELERY_ORCHESTRATOR_IMAGE_TAG:-0.1.0}
+  pull_policy: never
+  entrypoint: []
+  environment:
+    REDIS_URL: redis://redis:6379/0
+    SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
+    CRAWLER_BASE_URL: http://crawler-headhunter:3000
+    EVALUATOR_BASE_URL: http://job-postings-evaluator:8080
+  depends_on:
+    redis:
+      condition: service_healthy
+    settings-manager:
+      condition: service_started
+    crawler-headhunter:
+      condition: service_started
+    job-postings-evaluator:
+      condition: service_started
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -132,6 +151,53 @@ services:
       job-postings-crud:
         condition: service_started
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  celery-orchestrator-api:
+    <<: *celery_orchestrator_base
+    command:
+      - uvicorn
+      - celery_orchestrator.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+    ports:
+      - "${CELERY_ORCHESTRATOR_HTTP_PORT:-8001}:8000"
+
+  celery-orchestrator-worker:
+    <<: *celery_orchestrator_base
+    command:
+      - celery
+      - -A
+      - celery_orchestrator.celery_app
+      - worker
+      - --loglevel
+      - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
+      - --concurrency
+      - "6"
+
+  celery-orchestrator-flower:
+    <<: *celery_orchestrator_base
+    command:
+      - celery
+      - -A
+      - celery_orchestrator.celery_app
+      - flower
+      - --port=5555
+    ports:
+      - "${CELERY_ORCHESTRATOR_FLOWER_PORT:-5555}:5555"
+
 volumes:
   postgres_data:    
     driver: local
@@ -145,3 +211,9 @@ volumes:
       type: none
       o: bind
       device: ./volumes/sentence-transformer
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/redis
