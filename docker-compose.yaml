@@ -1,8 +1,9 @@
 x-celery-orchestrator-base: &celery_orchestrator_base
-  image: joposcragent/celery-orchestrator:${CELERY_ORCHESTRATOR_IMAGE_TAG:-0.1.0}
+  image: joposcragent/celery-orchestrator:${CELERY_ORCHESTRATOR_IMAGE_TAG:-latest}
   pull_policy: never
-  entrypoint: []
+  working_dir: /app
   environment:
+    PYTHONPATH: /app/src
     REDIS_URL: redis://redis:6379/0
     SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
     CRAWLER_BASE_URL: http://crawler-headhunter:3000
@@ -165,8 +166,8 @@ services:
 
   celery-orchestrator-api:
     <<: *celery_orchestrator_base
+    entrypoint: ["python", "-m", "uvicorn"]
     command:
-      - uvicorn
       - celery_orchestrator.main:app
       - --host
       - "0.0.0.0"
@@ -177,8 +178,8 @@ services:
 
   celery-orchestrator-worker:
     <<: *celery_orchestrator_base
+    entrypoint: ["python", "-m", "celery"]
     command:
-      - celery
       - -A
       - celery_orchestrator.celery_app
       - worker
@@ -189,8 +190,8 @@ services:
 
   celery-orchestrator-flower:
     <<: *celery_orchestrator_base
+    entrypoint: ["python", "-m", "celery"]
     command:
-      - celery
       - -A
       - celery_orchestrator.celery_app
       - flower
