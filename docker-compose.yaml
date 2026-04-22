@@ -148,6 +148,7 @@ services:
       - "${CRAWLER_HEADHUNTER_PORT:-3000}:3000"
     environment:
       JOB_POSTINGS_CRUD_URL: http://job-postings-crud:8080
+      CELERY_ORCHESTRATOR_BASE_URL: http://celery-orchestrator-api:8000
     depends_on:
       job-postings-crud:
         condition: service_started
