@@ -115,6 +115,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      CELERY_ORCHESTRATOR_BASE_URL: http://celery-orchestrator-api:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -199,6 +200,16 @@ services:
       - --port=5555
     ports:
       - "${CELERY_ORCHESTRATOR_FLOWER_PORT:-5555}:5555"
+
+  #celery-orchestrator-beat:
+  #  <<: *celery_orchestrator_base
+  #  entrypoint: ["python", "-m", "celery"]
+  #  command:
+  #    - -A
+  #    - celery_orchestrator.celery_app
+  #    - beat
+  #    - --loglevel
+  #    - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
 
 volumes:
   postgres_data:    
