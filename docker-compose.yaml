@@ -1,13 +1,17 @@
+# Общий env: при переопределении `environment` в сервисе с `<<: *` без merge
+# часть движков затирает весь блок из якоря — воркер/flower копируют его через `<<: *` ниже.
+x-celery-orchestrator-env: &celery_orchestrator_env
+  PYTHONPATH: /app/src
+  REDIS_URL: redis://redis:6379/0
+  SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
+  CRAWLER_BASE_URL: http://crawler-headhunter:3000
+  EVALUATOR_BASE_URL: http://job-postings-evaluator:8080
+
 x-celery-orchestrator-base: &celery_orchestrator_base
   image: joposcragent/celery-orchestrator:${CELERY_ORCHESTRATOR_IMAGE_TAG:-latest}
   pull_policy: never
   working_dir: /app
-  environment:
-    PYTHONPATH: /app/src
-    REDIS_URL: redis://redis:6379/0
-    SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
-    CRAWLER_BASE_URL: http://crawler-headhunter:3000
-    EVALUATOR_BASE_URL: http://job-postings-evaluator:8080
+  environment: *celery_orchestrator_env
   depends_on:
     redis:
       condition: service_healthy
@@ -115,7 +119,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      CELERY_ORCHESTRATOR_BASE_URL: http://celery-orchestrator-api:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,11 +131,14 @@ services:
     ports:
       - "${JOB_POSTINGS_EVALUATOR_PORT:-8082}:8080"
     environment:
+      # JSON console logs: uncomment to enable profile json-log (see application.yml in job-postings-evaluator).
+      # SPRING_PROFILES_ACTIVE: json-log
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       JOPOSCRAGENT_SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
       JOPOSCRAGENT_SENTENCE_TRANSFORMER_BASE_URL: http://sentence-transformer:8000/sentence-transformer
+      CELERY_ORCHESTRATOR_BASE_URL: http://celery-orchestrator-api:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -181,6 +187,9 @@ services:
   celery-orchestrator-worker:
     <<: *celery_orchestrator_base
     entrypoint: ["python", "-m", "celery"]
+    environment:
+      <<: *celery_orchestrator_env
+      CELERY_ORCHESTRATOR_FINISH_WAIT_TIMEOUT_SECONDS: 300
     command:
       - -A
       - celery_orchestrator.celery_app
