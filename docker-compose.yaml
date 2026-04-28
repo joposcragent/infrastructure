@@ -210,15 +210,15 @@ services:
     ports:
       - "${CELERY_ORCHESTRATOR_FLOWER_PORT:-5555}:5555"
 
-  #celery-orchestrator-beat:
-  #  <<: *celery_orchestrator_base
-  #  entrypoint: ["python", "-m", "celery"]
-  #  command:
-  #    - -A
-  #    - celery_orchestrator.celery_app
-  #    - beat
-  #    - --loglevel
-  #    - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
+  celery-orchestrator-beat:
+    <<: *celery_orchestrator_base
+    entrypoint: ["python", "-m", "celery"]
+    command:
+      - -A
+      - celery_orchestrator.celery_app
+      - beat
+      - --loglevel
+      - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
 
 volumes:
   postgres_data:    
