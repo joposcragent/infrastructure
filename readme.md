@@ -23,7 +23,7 @@ $ git clone git@github.com:joposcragent/celery-orchestrator.git
     - `job-postings-evaluator`
 2. Собрать python-сервисы командой  `./scripts/build_image.py` в репозиториях:
     - `crawler-headhunter`
-    - `sentence-transformer`
+    - `sentence-transformer` - этот прямо дохрена долго собирается, это нормально
 3. Собрать node.js-сервисы командой `./scripts/build-image.mjs` в репозиториях:
     - `celery-orchestrator`
 
@@ -108,3 +108,9 @@ curl --location 'http://localhost:8080/relevance-thresholds/CONTENT' \
      - `job-postings-evaluator` - пытается ли он оценку выполнить
      - `sentence-transformer` - что происходит с ML-моделью
      - `celery-orchestrator-api` - приходят ли в оркестратор и как обрабатываются события от crawler, crud и evaluator
+     - `celery-orchestrator-worker` - посмотреть, что воркер с задачами делает
+   - шесть и более задач в `RUNNING`
+     - все потоки воркера чем-то заняты, вероятнее всего ждут finish-задач, которые по какой-то причине не приходят
+     - шесть - волшебное число, которое можно увеличить параметром `--concurrency` в docker-compose.yaml
+     - там же `CELERY_ORCHESTRATOR_FINISH_WAIT_TIMEOUT_SECONDS` - таймаут, после которого задача будет прибита автоматически
+
