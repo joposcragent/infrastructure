@@ -22,6 +22,12 @@ x-celery-orchestrator-base: &celery_orchestrator_base
     job-postings-evaluator:
       condition: service_started
 
+x-web-front-env: &web_front_env
+  # Совпадают с портами compose на хосте; при сборке образа передайте те же URL как --build-arg VITE_*.
+  VITE_SETTINGS_MANAGER_BASE_URL: ${VITE_SETTINGS_MANAGER_BASE_URL:-http://localhost:8080}
+  VITE_JOB_POSTINGS_CRUD_BASE_URL: ${VITE_JOB_POSTINGS_CRUD_BASE_URL:-http://localhost:8081}
+  VITE_FLOWER_BASE_URL: ${VITE_FLOWER_BASE_URL:-http://localhost:5555}
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -219,6 +225,20 @@ services:
       - beat
       - --loglevel
       - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
+
+  web-front:
+    image: joposcragent/web-front:${WEB_FRONT_IMAGE_TAG:-latest}
+    pull_policy: never
+    ports:
+      - "${WEB_FRONT_PORT:-80}:80"
+    environment: *web_front_env
+    depends_on:
+      settings-manager:
+        condition: service_started
+      job-postings-crud:
+        condition: service_started
+      celery-orchestrator-flower:
+        condition: service_started
 
 volumes:
   postgres_data:    
