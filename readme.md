@@ -46,7 +46,7 @@ curl --location 'http://localhost:8080/reference-context' \
 текст'
 ```
 
-Ответ `200` — JSON с полями `context`, `vector`, `createdAt`, `updatedAt` (как при `GET`).
+Ответ `200` — JSON только с полями `vector`, `createdAt`, `updatedAt` (текст контекста в ответе не возвращается).
 
 ### 2. Настроить поисковые запросы (минимум один)
 
