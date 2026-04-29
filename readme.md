@@ -40,19 +40,24 @@ $ git clone git@github.com:joposcragent/celery-orchestrator.git
 ```shell
 curl --location 'http://localhost:8080/reference-context' \
 --header 'Content-Type: text/plain' \
---header 'Accept: text/plain' \
+--header 'Accept: application/json' \
 --data 'тут
 просто
 текст'
 ```
 
+Ответ `200` — JSON с полями `context`, `vector`, `createdAt`, `updatedAt` (как при `GET`).
+
 ### 2. Настроить поисковые запросы (минимум один)
 
 ```shell
 curl --location 'http://localhost:8080/search-query/{{new_random_uuid_v4}}' \
---header 'Content-Type: text/plain' \
---header 'Accept: text/plain' \
---data 'area=1&items_on_page=20&no_magic=true&order_by=publication_time&ored_clusters=true&professional_role=156&professional_role=160&professional_role=165&professional_role=36&professional_role=73&professional_role=96&professional_role=164&professional_role=104&professional_role=157&professional_role=112&professional_role=113&professional_role=148&professional_role=114&professional_role=124&professional_role=125&professional_role=126&search_field=name&text=%28CTO+OR+%22%D1%80%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%BA%D0%B8%22+OR+%22%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9+%D0%B4%D0%B8%D1%80%D0%B5%D0%BA%D1%82%D0%BE%D1%80%22+OR+%22chef+technical+oficer%22+OR+%22%D1%82%D0%B5%D1%85*%D0%BB%D0%B8%D0%B4%22+OR+%22tech*lead%22%29+AND+NOT%28teamlead+OR+%D1%82%D0%B8%D0%BC%D0%BB%D0%B8%D0%B4+OR+%22%D1%80%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D1%8B%22%29&search_period=1'
+--header 'Content-Type: application/json' \
+--header 'Accept: application/json' \
+--data '{
+  "name": "Мой поиск CTO",
+  "query": "https://hh.ru/search/vacancy?area=1&items_on_page=20&no_magic=true&order_by=publication_time&ored_clusters=true&professional_role=156&professional_role=160&professional_role=165&professional_role=36&professional_role=73&professional_role=96&professional_role=164&professional_role=104&professional_role=157&professional_role=112&professional_role=113&professional_role=148&professional_role=114&professional_role=124&professional_role=125&professional_role=126&search_field=name&text=%28CTO+OR+%22%D1%80%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D1%80%D0%B0%D0%B7%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%BA%D0%B8%22+OR+%22%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9+%D0%B4%D0%B8%D1%80%D0%B5%D0%BA%D1%82%D0%BE%D1%80%22+OR+%22chef+technical+oficer%22+OR+%22%D1%82%D0%B5%D1%85*%D0%BB%D0%B8%D0%B4%22+OR+%22tech*lead%22%29+AND+NOT%28teamlead+OR+%D1%82%D0%B8%D0%BC%D0%BB%D0%B8%D0%B4+OR+%22%D1%80%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8C+%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D1%8B%22%29&search_period=1"
+}'
 ```
 
 ### 3. Настрить пороги релевантности
