@@ -29,8 +29,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-joposcragent}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+    #ports:
+    #  - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -77,8 +77,8 @@ services:
   sentence-transformer:
     image: joposcragent/sentence-transformer:${SENTENCE_TRANSFORMER_IMAGE_TAG:-latest}
     pull_policy: never
-    ports:
-      - "${SENTENCE_TRANSFORMER_PORT:-8000}:8000"
+    #ports:
+    #  - "${SENTENCE_TRANSFORMER_PORT:-8000}:8000"
     environment:
       ST_HOST: ${ST_HOST:-0.0.0.0}
       ST_PORT: ${ST_PORT:-8000}
@@ -95,6 +95,8 @@ services:
   settings-manager:
     image: joposcragent/settings-manager:${SETTINGS_IMAGE_TAG:-latest}
     pull_policy: never
+    #ports:
+    #  - "${SETTINGS_MANAGER_PORT:-8080}:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
@@ -111,6 +113,8 @@ services:
   job-postings-crud:
     image: joposcragent/job-postings-crud:${CRUD_IMAGE_TAG:-latest}
     pull_policy: never
+    #ports:
+    #  - "${JOB_POSTINGS_CRUD_PORT:-8081}:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
@@ -124,8 +128,8 @@ services:
   job-postings-evaluator:
     image: joposcragent/job-postings-evaluator:${EVALUATOR_IMAGE_TAG:-latest}
     pull_policy: never
-    ports:
-      - "${JOB_POSTINGS_EVALUATOR_PORT:-8082}:8080"
+    #ports:
+    #  - "${JOB_POSTINGS_EVALUATOR_PORT:-8082}:8080"
     environment:
       # JSON console logs: uncomment to enable profile json-log (see application.yml in job-postings-evaluator).
       # SPRING_PROFILES_ACTIVE: json-log
@@ -147,8 +151,8 @@ services:
   crawler-headhunter:
     image: joposcragent/crawler-headhunter:${CRAWLER_HEADHUNTER_IMAGE_TAG:-latest}
     pull_policy: never
-    ports:
-      - "${CRAWLER_HEADHUNTER_PORT:-3000}:3000"
+    #ports:
+    #  - "${CRAWLER_HEADHUNTER_PORT:-3000}:3000"
     environment:
       JOB_POSTINGS_CRUD_URL: http://job-postings-crud:8080
       CELERY_ORCHESTRATOR_BASE_URL: http://celery-orchestrator-api:8000
@@ -158,8 +162,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    #ports:
+    #  - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -177,8 +181,8 @@ services:
       - "0.0.0.0"
       - --port
       - "8000"
-    ports:
-      - "${CELERY_ORCHESTRATOR_HTTP_PORT:-8001}:8000"
+    #ports:
+    #  - "${CELERY_ORCHESTRATOR_HTTP_PORT:-8001}:8000"
 
   celery-orchestrator-worker:
     <<: *celery_orchestrator_base
@@ -216,8 +220,8 @@ services:
       - --loglevel
       - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
 
-  # SPA: VITE_* для API вшиваются при сборке образа (docker build / scripts/docker-build.sh), не из environment контейнера.
-  # Пустые API URL + nginx в образе проксируют на settings-manager и job-postings-crud по docker-сети.
+  # SPA: VITE_* вшиваются при сборке образа, не из environment контейнера.
+  # Пустые API URL + nginx: same-origin; прокси на settings-manager, job-postings-crud и celery-orchestrator-api.
   web-front:
     image: joposcragent/web-front:${WEB_FRONT_IMAGE_TAG:-latest}
     pull_policy: never
@@ -227,6 +231,8 @@ services:
       settings-manager:
         condition: service_started
       job-postings-crud:
+        condition: service_started
+      celery-orchestrator-api:
         condition: service_started
       celery-orchestrator-flower:
         condition: service_started
