@@ -22,12 +22,6 @@ x-celery-orchestrator-base: &celery_orchestrator_base
     job-postings-evaluator:
       condition: service_started
 
-x-web-front-env: &web_front_env
-  # Совпадают с портами compose на хосте; при сборке образа передайте те же URL как --build-arg VITE_*.
-  VITE_SETTINGS_MANAGER_BASE_URL: ${VITE_SETTINGS_MANAGER_BASE_URL:-http://localhost:8080}
-  VITE_JOB_POSTINGS_CRUD_BASE_URL: ${VITE_JOB_POSTINGS_CRUD_BASE_URL:-http://localhost:8081}
-  VITE_FLOWER_BASE_URL: ${VITE_FLOWER_BASE_URL:-http://localhost:5555}
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -81,7 +75,7 @@ services:
     restart: "no"
 
   sentence-transformer:
-    image: joposcragent-sentence-transformer
+    image: joposcragent/sentence-transformer:${SENTENCE_TRANSFORMER_IMAGE_TAG:-latest}
     pull_policy: never
     ports:
       - "${SENTENCE_TRANSFORMER_PORT:-8000}:8000"
@@ -101,8 +95,6 @@ services:
   settings-manager:
     image: joposcragent/settings-manager:${SETTINGS_IMAGE_TAG:-latest}
     pull_policy: never
-    ports:
-      - "${SETTINGS_MANAGER_PORT:-8080}:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
@@ -119,8 +111,6 @@ services:
   job-postings-crud:
     image: joposcragent/job-postings-crud:${CRUD_IMAGE_TAG:-latest}
     pull_policy: never
-    ports:
-      - "${JOB_POSTINGS_CRUD_PORT:-8081}:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
@@ -226,12 +216,13 @@ services:
       - --loglevel
       - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
 
+  # SPA: VITE_* для API вшиваются при сборке образа (docker build / scripts/docker-build.sh), не из environment контейнера.
+  # Пустые API URL + nginx в образе проксируют на settings-manager и job-postings-crud по docker-сети.
   web-front:
     image: joposcragent/web-front:${WEB_FRONT_IMAGE_TAG:-latest}
     pull_policy: never
     ports:
       - "${WEB_FRONT_PORT:-80}:80"
-    environment: *web_front_env
     depends_on:
       settings-manager:
         condition: service_started

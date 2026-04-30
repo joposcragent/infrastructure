@@ -7,6 +7,9 @@
 Чтобы пересоздать **только** этот контейнер и не трогать остальные сервисы:
 
 ```bash
+# в общем случае
+docker compose up -d <имя_сервиса>
+# в конкретном случае
 docker compose -f infra/docker-compose.yaml up -d --no-deps --force-recreate job-postings-crud
 ```
 

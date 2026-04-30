@@ -21,7 +21,7 @@ $ git clone git@github.com:joposcragent/celery-orchestrator.git
     - `settings-manager`
     - `job-postings-crud`
     - `job-postings-evaluator`
-2. Собрать python-сервисы командой  `./scripts/build_image.py` в репозиториях:
+2. Собрать python-сервисы командой  `./scripts/build_image.sh` в репозиториях:
     - `crawler-headhunter`
     - `sentence-transformer` - этот прямо дохрена долго собирается, это нормально
 3. Собрать node.js-сервисы командой `./scripts/build-image.mjs` в репозиториях:
