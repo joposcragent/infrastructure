@@ -6,10 +6,10 @@ x-celery-orchestrator-env: &celery_orchestrator_env
   SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
   CRAWLER_BASE_URL: http://crawler-headhunter:3000
   EVALUATOR_BASE_URL: http://job-postings-evaluator:8080
+  FLOWER_UNAUTHENTICATED_API: true
 
 x-celery-orchestrator-base: &celery_orchestrator_base
   image: joposcragent/celery-orchestrator:${CELERY_ORCHESTRATOR_IMAGE_TAG:-latest}
-  pull_policy: never
   working_dir: /app
   environment: *celery_orchestrator_env
   depends_on:
@@ -29,8 +29,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-joposcragent}
-    #ports:
-    #  - "${POSTGRES_PORT:-5432}:5432"
+    # ports:
+    #   - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -76,7 +76,6 @@ services:
 
   sentence-transformer:
     image: joposcragent/sentence-transformer:${SENTENCE_TRANSFORMER_IMAGE_TAG:-latest}
-    pull_policy: never
     #ports:
     #  - "${SENTENCE_TRANSFORMER_PORT:-8000}:8000"
     environment:
@@ -94,7 +93,6 @@ services:
 
   settings-manager:
     image: joposcragent/settings-manager:${SETTINGS_IMAGE_TAG:-latest}
-    pull_policy: never
     #ports:
     #  - "${SETTINGS_MANAGER_PORT:-8080}:8080"
     environment:
@@ -112,7 +110,6 @@ services:
 
   job-postings-crud:
     image: joposcragent/job-postings-crud:${CRUD_IMAGE_TAG:-latest}
-    pull_policy: never
     #ports:
     #  - "${JOB_POSTINGS_CRUD_PORT:-8081}:8080"
     environment:
@@ -127,7 +124,6 @@ services:
 
   job-postings-evaluator:
     image: joposcragent/job-postings-evaluator:${EVALUATOR_IMAGE_TAG:-latest}
-    pull_policy: never
     #ports:
     #  - "${JOB_POSTINGS_EVALUATOR_PORT:-8082}:8080"
     environment:
@@ -150,7 +146,6 @@ services:
         condition: service_started
   crawler-headhunter:
     image: joposcragent/crawler-headhunter:${CRAWLER_HEADHUNTER_IMAGE_TAG:-latest}
-    pull_policy: never
     #ports:
     #  - "${CRAWLER_HEADHUNTER_PORT:-3000}:3000"
     environment:
@@ -224,7 +219,6 @@ services:
   # Пустые API URL + nginx: same-origin; прокси на settings-manager, job-postings-crud и celery-orchestrator-api.
   web-front:
     image: joposcragent/web-front:${WEB_FRONT_IMAGE_TAG:-latest}
-    pull_policy: never
     ports:
       - "${WEB_FRONT_PORT:-80}:80"
     depends_on:
