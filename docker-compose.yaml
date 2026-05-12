@@ -29,8 +29,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-joposcragent}
-    # ports:
-    #   - "${POSTGRES_PORT:-5432}:5432"
+    ports:
+       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -225,6 +225,8 @@ services:
       settings-manager:
         condition: service_started
       job-postings-crud:
+        condition: service_started
+      job-postings-evaluator:
         condition: service_started
       celery-orchestrator-api:
         condition: service_started
