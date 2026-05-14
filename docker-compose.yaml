@@ -1,27 +1,3 @@
-# Общий env: при переопределении `environment` в сервисе с `<<: *` без merge
-# часть движков затирает весь блок из якоря — воркер/flower копируют его через `<<: *` ниже.
-x-celery-orchestrator-env: &celery_orchestrator_env
-  PYTHONPATH: /app/src
-  REDIS_URL: redis://redis:6379/0
-  SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
-  CRAWLER_BASE_URL: http://crawler-headhunter:3000
-  EVALUATOR_BASE_URL: http://job-postings-evaluator:8080
-  FLOWER_UNAUTHENTICATED_API: true
-
-x-celery-orchestrator-base: &celery_orchestrator_base
-  image: joposcragent/celery-orchestrator:${CELERY_ORCHESTRATOR_IMAGE_TAG:-latest}
-  working_dir: /app
-  environment: *celery_orchestrator_env
-  depends_on:
-    redis:
-      condition: service_healthy
-    settings-manager:
-      condition: service_started
-    crawler-headhunter:
-      condition: service_started
-    job-postings-evaluator:
-      condition: service_started
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -170,7 +146,6 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       JOPOSCRAGENT_SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
       JOPOSCRAGENT_SENTENCE_TRANSFORMER_BASE_URL: http://sentence-transformer:8000/sentence-transformer
-      CELERY_ORCHESTRATOR_BASE_URL: http://celery-orchestrator-api:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -180,79 +155,76 @@ services:
         condition: service_started
       sentence-transformer:
         condition: service_started
+
   crawler-headhunter:
     image: joposcragent/crawler-headhunter:${CRAWLER_HEADHUNTER_IMAGE_TAG:-latest}
     #ports:
     #  - "${CRAWLER_HEADHUNTER_PORT:-3000}:3000"
     environment:
       JOB_POSTINGS_CRUD_URL: http://job-postings-crud:8080
-      CELERY_ORCHESTRATOR_BASE_URL: http://celery-orchestrator-api:8000
     depends_on:
       job-postings-crud:
         condition: service_started
 
-  redis:
-    image: redis:7-alpine
-    #ports:
-    #  - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
-  celery-orchestrator-api:
-    <<: *celery_orchestrator_base
-    entrypoint: ["python", "-m", "uvicorn"]
-    command:
-      - celery_orchestrator.main:app
-      - --host
-      - "0.0.0.0"
-      - --port
-      - "8000"
-    #ports:
-    #  - "${CELERY_ORCHESTRATOR_HTTP_PORT:-8001}:8000"
-
-  celery-orchestrator-worker:
-    <<: *celery_orchestrator_base
-    entrypoint: ["python", "-m", "celery"]
+  orchestration-async-jobs-crud:
+    image: joposcragent/orchestration-async-jobs-crud:${ORCHESTRATION_ASYNC_JOBS_CRUD_IMAGE_TAG:-latest}
     environment:
-      <<: *celery_orchestrator_env
-      CELERY_ORCHESTRATOR_FINISH_WAIT_TIMEOUT_SECONDS: 300
-    command:
-      - -A
-      - celery_orchestrator.celery_app
-      - worker
-      - --loglevel
-      - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
-      - --concurrency
-      - "6"
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    #ports:
+    #  - "${ORCHESTRATION_ASYNC_JOBS_CRUD_PORT:-8085}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_started
 
-  celery-orchestrator-flower:
-    <<: *celery_orchestrator_base
-    entrypoint: ["python", "-m", "celery"]
-    command:
-      - -A
-      - celery_orchestrator.celery_app
-      - flower
-      - --port=5555
-    ports:
-      - "${CELERY_ORCHESTRATOR_FLOWER_PORT:-5555}:5555"
+  orchestration-scheduler:
+    image: joposcragent/orchestration-scheduler:${ORCHESTRATION_SCHEDULER_IMAGE_TAG:-latest}
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent?stringtype=unspecified
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    #ports:
+    #  - "${ORCHESTRATION_SCHEDULER_PORT:-8083}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_started
 
-  celery-orchestrator-beat:
-    <<: *celery_orchestrator_base
-    entrypoint: ["python", "-m", "celery"]
-    command:
-      - -A
-      - celery_orchestrator.celery_app
-      - beat
-      - --loglevel
-      - "${CELERY_ORCHESTRATOR_LOG_LEVEL:-info}"
+  orchestration-conductor:
+    image: joposcragent/orchestration-conductor:${ORCHESTRATION_CONDUCTOR_IMAGE_TAG:-latest}
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      JOPOSCRAGENT_SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
+    #ports:
+    #  - "${ORCHESTRATION_CONDUCTOR_PORT:-8084}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_started
+      settings-manager:
+        condition: service_started
 
   # SPA: VITE_* вшиваются при сборке образа, не из environment контейнера.
-  # Пустые API URL + nginx: same-origin; прокси на settings-manager, job-postings-crud и celery-orchestrator-api.
+  # Пустые API URL + nginx: same-origin; прокси на settings-manager и job-postings-crud.
   web-front:
     image: joposcragent/web-front:${WEB_FRONT_IMAGE_TAG:-latest}
     ports:
@@ -264,13 +236,9 @@ services:
         condition: service_started
       job-postings-evaluator:
         condition: service_started
-      celery-orchestrator-api:
-        condition: service_started
-      celery-orchestrator-flower:
-        condition: service_started
 
 volumes:
-  postgres_data:    
+  postgres_data:
     driver: local
     driver_opts:
       type: none
@@ -282,12 +250,6 @@ volumes:
       type: none
       o: bind
       device: ./volumes/sentence-transformer
-  redis_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./volumes/redis
   kafka_data:
     driver: local
     driver_opts:
