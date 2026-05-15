@@ -1,103 +1,99 @@
 # Развертывание Joposcragent
 
-Развернуть можно из образов с Docker.Hub или из локально собранных.
+Развернуть можно из образов с Docker Hub или из локально собранных.
 
-В первом случае просто идём в репу infra и кастуем `$ docker compose up -d`, после чего решительно переходим к разделу [И чо дальше?](#и-чо-дальше)
+В первом случае переходите в каталог репозитория `infra` и выполняйте `docker compose up -d`, затем раздел [И чо дальше?](#и-чо-дальше).
+
 Свежесть образов на хабе, к сожалению, пока не гарантируется, но я обещаю очень стараться.
 
-Во втором - придется [потрахаться](#локальная-сборка).
+Во втором случае понадобится [локальная сборка](#локальная-сборка).
 
 ## Локальная сборка
 
 ### Склонировать репозитории
 
 ```bash
-$ git clone git@github.com:joposcragent/specifications.git
-$ git clone git@github.com:joposcragent/infrastructure.git
-$ git clone git@github.com:joposcragent/settings-manager.git
-$ git clone git@github.com:joposcragent/job-postings-crud.git
-$ git clone git@github.com:joposcragent/sentence-transformer.git
-$ git clone git@github.com:joposcragent/job-postings-evaluator.git
-$ git clone git@github.com:joposcragent/crawler-headhunter.git
-$ git clone git@github.com:joposcragent/celery-orchestrator.git
-$ git clone git@github.com:joposcragent/web-front.git
-
+git clone git@github.com:joposcragent/specifications.git
+git clone git@github.com:joposcragent/infra.git
+git clone git@github.com:joposcragent/settings-manager.git
+git clone git@github.com:joposcragent/job-postings-crud.git
+git clone git@github.com:joposcragent/sentence-transformer.git
+git clone git@github.com:joposcragent/job-postings-evaluator.git
+git clone git@github.com:joposcragent/crawler-headhunter.git
+git clone git@github.com:joposcragent/orchestration-scheduler.git
+git clone git@github.com:joposcragent/orchestration-conductor.git
+git clone git@github.com:joposcragent/orchestration-async-jobs-crud.git
+git clone git@github.com:joposcragent/web-front.git
 ```
 
 ### Собрать docker-образы
 
 1. Flyway
-  ```bash
-   $ cd specifications/database-schema
-   $ ./build-image.sh
-   $ docker compose up -d # без этого не соберутся kotlin-сервисы
-  ```
-2. Собрать kotlin-сервисы командой `./gradlew bootBuildImage` в репозиториях:
-  - `# тут надо, чтобы $JAVA_HOME указывал на установленную java от 1.8`
-  - `$ cd settings-manager && ./gradlew bootBuildImage`
-  - `$ cd job-postings-crud && ./gradlew bootBuildImage`
-  - `$ cd job-postings-evaluator && ./gradlew bootBuildImage`
-  - `# вот тут можно остановить контейнер, поднятый из database-schema, он до следующей сборки не понадобится`
-3. Собрать остальные сервисы командой  `./scripts/build_image.sh` в репозиториях:
-  - `$ cd crawler-headhunter && ./scripts/build_image.sh`
-  - `$ cd sentence-transformer && ./scripts/build_image.sh` - этот прямо дохрена долго собирается, это нормально
-  - `$ celery-orchestrator && ./scripts/build_image.sh`
-  - `$ web-front && ./scripts/build_image.sh`
+
+   ```bash
+   cd specifications/database-schema
+   ./build-image.sh
+   docker compose up -d
+   ```
+
+   Без поднятого Postgres из compose Kotlin-сервисы не соберутся (нужна БД для генерации и тестов по вашему процессу).
+
+2. Собрать Kotlin-сервисы командой `./gradlew bootBuildImage` в репозиториях (нужен JDK, совместимый с проектом):
+
+   - `settings-manager`
+   - `job-postings-crud`
+   - `job-postings-evaluator`
+   - `orchestration-scheduler`
+   - `orchestration-conductor`
+   - `orchestration-async-jobs-crud`
+
+3. Собрать остальные сервисы командой `./scripts/build_image.sh` в репозиториях:
+
+   - `crawler-headhunter`
+   - `sentence-transformer` (долго собирается — нормально)
+   - `web-front`
 
 ### Запуск в `docker compose`
 
-После того, как всё собралось, переходим в репу `infrastructure` и кастуем `docker compose up -d`.
+После сборки перейдите в репозиторий `infra` и выполните `docker compose up -d`.
 
 ## И чо дальше?
 
-1. открываем браузером [http://localhost/](http://localhost/)
-2. настраиваем референсный контекс (текст своего резюме)
-3. пороги релевантности (это лучше эмпирически после первого сбора)
-4. поисковые запросы (это не URL, а `https://hh.ru/search/vacancy?вот-всё-что-тут-это-поисковый-запрос` )
-5. Идём в Дашборд, жмём "Собрать вакансии" и ждём минут сколько-то там в зависимости от запроса и удачи.
-   1. В разделе "Вакансии" можно F5-тиь и наблюдать, как появляются новые вакансии
-   2. Процесс будет завершен, когда в оркестраторе задачи `collection-query` получат статус `SUCCESS`
+1. Откройте в браузере [http://localhost/](http://localhost/).
+2. Настройте эталонный контекст (текст резюме).
+3. Подберите пороги релевантности (лучше после первого сбора).
+4. Настройте поисковые запросы (в БД хранится query-string после `?` для страницы поиска hh.ru).
+5. На дашборде или в списке вакансий запустите сбор; дождитесь появления записей и смены статусов оценки.
 
-### Ну и всё
+Плановый пакетный сбор выполняет **`orchestration-scheduler`** (задание `COLLECTION_BATCH`): публикует сообщения в **Kafka**, дальше цепочку ведёт **`orchestration-conductor`** и воркеры (`crawler-headhunter`, `job-postings-crud`, `job-postings-evaluator`). Учёт async-job в PostgreSQL ведёт **`orchestration-async-jobs-crud`**.
 
-Теперь раз в час celery будет запускать задачу collection-batch, которая запустит по каждому поисковому запросу сбор вакансий.
-По мере загрузки контента вакансий они будут отправляться на оценку.
-Результаты оценки можно посмотреть на фронте.
+Состояние топиков и сообщений можно смотреть в **Kafka UI** (порт по умолчанию см. `KAFKA_UI_PORT` в compose, обычно [http://localhost:8090](http://localhost:8090)).
 
 ## Всё сделано, но нихрена не работает
 
-Мои сорясики, в общем-то.
-
 Из того, что можно сделать:
 
-1. Первым делолм убедиться, что все контейнеры запущены, ниже симптомы при падении каждого:
-  - `sentence-transformer` - без него не работает эмбеддинг и оценка
-  - `postgres` - без БД не будут работать settings и crud
-  - `settings-manager` - без этого ничего не работает
-  - `job-postings-crud` - crawler вроде что-то делает, но новых вакансий не появляется
-  - `job-postings-evaluator` - вакансии создаются, но статус всегда NEW
-  - `crawler-headhunter` - новых вакансий нет, задачи collection-query FAILED
-  - `redis` - если этот лежит, то оркестратор не работает и flower не открывается
-  - `celery-orchestrator-api` - во flower есть только задачи collection-* и нет ни одной progress, finish
-  - `celery-orchestrator-worker` - все задачи STARTED и не двигаются, crawler c evaluator'ом запросов не получают
-  - `celery-orchestrator-flower` - UI Celery не открывается
-  - `celery-orchestrator-beat` - раз в час не создаются автоматом задачи collection-batch
-2. Посмотреть UI Celery: [http://localhost:5555/tasks](http://localhost:5555/tasks)
-  - там будут задачки, которые порождаются процессом
-  - в задачках kwargs и статус, оттуда что-то можно понять
-  - работает поиск по uuid вакансии (поле поиска в правом верхнем углу)
-  - из этого можно сделать какие-то выводы
-3. Посмотреть логи контейнеров
-  - если в celery нет задач, то - в контейнер `celery-orchestrator-worker`
-  - если есть задачи только collection-*, то:
-    - `crawler-headhunter` - посмотреть, что происходит при скрапинге
-    - `job-postings-crud` - убедиться, что вакансии создаются
-    - `job-postings-evaluator` - пытается ли он оценку выполнить
-    - `sentence-transformer` - что происходит с ML-моделью
-    - `celery-orchestrator-api` - приходят ли в оркестратор и как обрабатываются события от crawler, crud и evaluator
-    - `celery-orchestrator-worker` - посмотреть, что воркер с задачами делает
-  - шесть и более задач в `RUNNING`
-    - все потоки воркера чем-то заняты, вероятнее всего ждут finish-задач, которые по какой-то причине не приходят
-    - шесть - волшебное число, которое можно увеличить параметром `--concurrency` в docker-compose.yaml
-    - там же `CELERY_ORCHESTRATOR_FINISH_WAIT_TIMEOUT_SECONDS` - таймаут, после которого задача будет прибита автоматически
+1. Убедиться, что контейнеры запущены. Ниже — ориентиры по симптомам:
 
+   - `sentence-transformer` — без него не работает эмбеддинг и оценка.
+   - `postgres` — без БД не работают настройки и CRUD.
+   - `kafka` — без брокера не работает асинхронная оркестрация.
+   - `settings-manager` — базовые настройки и поисковые запросы.
+   - `job-postings-crud` — REST и потребление Kafka для создания вакансий.
+   - `job-postings-evaluator` — оценка; без него статусы оценки не двигаются.
+   - `crawler-headhunter` — сбор с hh.ru; при сбоях не появляются новые вакансии.
+   - `orchestration-scheduler` — плановые тики и публикация `collection-batch` в Kafka.
+   - `orchestration-conductor` — реакция на события Kafka и ручной enqueue с фронта.
+   - `orchestration-async-jobs-crud` — строки `orchestration.async_jobs` и связи; при сбоях расходится учёт джобов.
+
+2. Открыть **Kafka UI** и проверить топики `async-job.*`: есть ли сообщения `*-begin` / `*-result`, задержки, ошибки консьюмеров.
+
+3. Посмотреть логи контейнеров в порядке сценария:
+
+   - `orchestration-scheduler` — срабатывает ли плановое задание.
+   - `orchestration-conductor` — публикует ли дочерние джобы, нет ли исключений при обработке.
+   - `crawler-headhunter` — запросы к hh.ru и вызовы CRUD.
+   - `job-postings-crud` — вставка вакансий и Kafka-исходящие.
+   - `job-postings-evaluator` — обработка `job-posting-evaluate`.
+   - `orchestration-async-jobs-crud` — обновление статусов джобов по Kafka.
+   - `sentence-transformer` — здоровье и время ответа.

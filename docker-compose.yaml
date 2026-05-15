@@ -128,11 +128,14 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/joposcragent
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       postgres:
         condition: service_healthy
       flyway:
         condition: service_completed_successfully
+      kafka:
+        condition: service_started
 
   job-postings-evaluator:
     image: joposcragent/job-postings-evaluator:${EVALUATOR_IMAGE_TAG:-latest}
@@ -145,12 +148,15 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       JOPOSCRAGENT_SETTINGS_MANAGER_BASE_URL: http://settings-manager:8080
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       JOPOSCRAGENT_SENTENCE_TRANSFORMER_BASE_URL: http://sentence-transformer:8000/sentence-transformer
     depends_on:
       postgres:
         condition: service_healthy
       flyway:
         condition: service_completed_successfully
+      kafka:
+        condition: service_started
       settings-manager:
         condition: service_started
       sentence-transformer:
@@ -162,8 +168,13 @@ services:
     #  - "${CRAWLER_HEADHUNTER_PORT:-3000}:3000"
     environment:
       JOB_POSTINGS_CRUD_URL: http://job-postings-crud:8080
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_CLIENT_ID: crawler-headhunter
+      KAFKA_CONSUMER_GROUP_ID: crawler-headhunter-collection-query
     depends_on:
       job-postings-crud:
+        condition: service_started
+      kafka:
         condition: service_started
 
   orchestration-async-jobs-crud:
